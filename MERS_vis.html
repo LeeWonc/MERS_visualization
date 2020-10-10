@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SOP Javascript : Map create sample</title>
+   <meta charset="utf-8">
+   
+   <meta name="viewport" 
+          content="width=device-width, height=device-height, 
+                     minimum-scale=1.0, maximum-scale=1.0, initial-scale=1.0">
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.14.3/xlsx.full.min.js"></script>   
+   <script type="text/javascript" src="https://code.jquery.com/jquery-latest.js"></script>
+   <script type="text/javascript" src="https://sgisapi.kostat.go.kr/OpenAPI3/auth/javascriptAuth?consumer_key=4f4cb0daeaaf4f1187de"></script>
+   
+</head>
+
+<body>
+   
+   <div id="map" style = "width: 45%; height: 900px; float: left"></div>
+   <div id="community" style = "width: 54%; height: 900px; float: right; border: 1px solid #000;">
+        <h2>File Load</h2> 
+        Node File: 
+        <input type="file" id="excelFile" onchange="excelExport(event)" />
+        Edge file: 
+        <input type="file" id="OPFile" onchange="OPload(event)" />
+        <div>
+            <h1>Node Info</h1>
+            <p id = "NodeInfo" style="font-size: large;"></p>
+        </div>
+        <div>
+            <h1>Community</h1>
+            <p>
+                Community color:<small id ="red" style="background-color: #ff0000; color: #ff0000;"></small><small id ="blue" style="background-color: #0000ff; color: #0000ff;"></small>
+                                <small id ="green" style="background-color: #00ff00; color: #00ff00;"></small><small id = "yellow" style="background-color: #ffa500; color: #ffa500;"></small>
+                                <small id ="brown" style="background-color: #964b00; color: #964b00;"></small>
+            </p>
+            <p>Number of nodes: <small id = "NumberOfCmty"></small></p>
+            <p>Nodes: <small id = "Communities"></small></p>
+            
+        </div>
+        
+        
+    </div>
+    
+    
+   
+   <script type="text/javascript">
+      var map = sop.map("map");
+      map.setView(sop.utmk(953820, 1953437), 1);
+      var colors = ['#ff0000', '#00ff00', '#0000ff', '#ffa500', '#964b00', '#686868']
+      var Node_info = {};
+      var Obj;
+      var Marker;
+      var polyline;
+      function excelExport(event){
+         var input = event.target;
+         var reader = new FileReader();
+         reader.onload = function(){
+            var fileData = reader.result;
+            var wb = XLSX.read(fileData, {type : 'binary'});
+            wb.SheetNames.forEach(function(sheetName){
+               var rowObj =XLSX.utils.sheet_to_json(wb.Sheets[sheetName]);
+               Obj = rowObj
+               for (i in rowObj){
+                  var longtitude = rowObj[i].Longitude;
+                  if (longtitude == undefined){
+                     continue
+                  }
+                  var latitude = rowObj[i].Latitude;
+                  var community_id = rowObj[i].CommunityId;
+                  var utmkXY = new sop.LatLng(latitude, longtitude);
+                  Node_info[rowObj[i].Name] = [latitude, longtitude, community_id];
+                  if (community_id > 5){
+                    var marker = sop.circleMarker([utmkXY.x, utmkXY.y], {
+                        radius : 8,
+                        color : colors[5],
+                        weight : 2,
+                        id : rowObj[i].Name,
+                        cmty: community_id,
+                    });
+                  } else {
+                    var marker = sop.circleMarker([utmkXY.x, utmkXY.y], {
+                        radius : 8,
+                        color : colors[community_id -1],
+                        weight : 2,
+                        id : rowObj[i].Name,
+                        cmty: community_id,
+                    });   
+                  }
+                  var node_name = rowObj[i].Name
+                  marker.on("click", function(e){
+                      document.getElementById("NodeInfo").innerHTML = e.target.options.id
+                      if (e.target.options.color == colors[0]){
+                          document.getElementById("red").innerHTML = ' 색';
+                          document.getElementById("green").innerHTML = '';
+                          document.getElementById("blue").innerHTML = '';
+                          document.getElementById("yellow").innerHTML = '';
+                          document.getElementById("brown").innerHTML = '';
+                      }
+                      else if(e.target.options.color == colors[1]){
+                        document.getElementById("red").innerHTML = '';
+                          document.getElementById("green").innerHTML = ' 색';
+                          document.getElementById("blue").innerHTML = '';
+                          document.getElementById("yellow").innerHTML = '';
+                          document.getElementById("brown").innerHTML = '';
+                      }
+                      else if(e.target.options.color == colors[2]){
+                        document.getElementById("red").innerHTML = '';
+                          document.getElementById("green").innerHTML = '';
+                          document.getElementById("blue").innerHTML = ' 색';
+                          document.getElementById("yellow").innerHTML = '';
+                          document.getElementById("brown").innerHTML = '';
+                      }
+                      else if(e.target.options.color == colors[3]){
+                        document.getElementById("red").innerHTML = '';
+                          document.getElementById("green").innerHTML = '';
+                          document.getElementById("blue").innerHTML = '';
+                          document.getElementById("yellow").innerHTML = ' 색';
+                          document.getElementById("brown").innerHTML = '';
+                      }
+                      else if(e.target.options.color == colors[4]){
+                        document.getElementById("red").innerHTML = '';
+                          document.getElementById("green").innerHTML = '';
+                          document.getElementById("blue").innerHTML = '';
+                          document.getElementById("yellow").innerHTML = '';
+                          document.getElementById("brown").innerHTML = ' 색';
+                      }
+                      else{
+                        document.getElementById("red").innerHTML = '';
+                          document.getElementById("green").innerHTML = '';
+                          document.getElementById("blue").innerHTML = '';
+                          document.getElementById("yellow").innerHTML = '';
+                          document.getElementById("brown").innerHTML = '';
+                      }
+                      
+                      document.getElementById("")
+                      var node_cmty = e.target.options.cmty
+                      var same_community = []
+                      for (name in Node_info){
+                        if (Node_info[name][2] == node_cmty){
+                            same_community.push(" "+name)
+                        }
+                      }
+                      document.getElementById("Communities").innerHTML = same_community
+                      document.getElementById("NumberOfCmty").innerHTML = same_community.length
+
+                      //edge 추가
+                      if (polyline != undefined){
+                          polyline.remove();
+                      }
+                      if (node_cmty >5){
+                        polyline = sop.polyline(polylines[node_cmty], {
+                            stroke: true,
+                            color: colors[5],
+                            weight : 0.5,
+                            opacity: 0.5,
+                            fill: false,
+                            fillColor: colors[5],
+                            fillOpacity: 0.2,
+                        });
+                      }
+                      else{
+                        polyline = sop.polyline(polylines[node_cmty], {
+                            stroke: true,
+                            color: colors[node_cmty-1],
+                            weight : 0.5,
+                            opacity: 0.5,
+                            fill: false,
+                            fillColor:colors[node_cmty-1],
+                            fillOpacity: 0.2,
+                        });
+                      }
+                        
+
+                        polyline.addTo(map);
+                       map.fitBounds(polyline);
+                      
+                  })
+                  marker.addTo(map);
+                }
+               
+            })
+         };
+         
+         reader.readAsBinaryString(input.files[0]);
+      } 
+      var polylines = new Array();
+      for (i =0; i<28; i++){
+          polylines[i] = new Array();
+      }
+      function OPload(event){
+         
+         var input = event.target;
+         var reader = new FileReader();
+         
+         reader.onload = function(){
+            var fileData = reader.result;
+            var wb = XLSX.read(fileData, {type : 'binary'});
+            wb.SheetNames.forEach(function(sheetName){
+               var rowObj =XLSX.utils.sheet_to_json(wb.Sheets[sheetName]);
+               for (i in rowObj){
+                  var from = rowObj[i].FROM;
+                  var to = rowObj[i].TO;
+                  if (!(from in Node_info) || !(to in Node_info)){
+                     continue
+                  }
+                  var Flatitude = Node_info[from][0]
+                  var Flongtitude = Node_info[from][1]
+                  console.log(Node_info[from])
+                  var Tlatitude = Node_info[to][0]
+                  var Tlongtitude = Node_info[to][1]
+                  console.log(Flatitude)
+                  var From_utmkXY = new sop.LatLng(Flatitude, Flongtitude);
+                  var To_utmkXY = new sop.LatLng(Tlatitude, Tlongtitude);
+                  
+                  polylines[Node_info[from][2]].push([From_utmkXY.x, From_utmkXY.y]);
+                  polylines[Node_info[from][2]].push([To_utmkXY.x, To_utmkXY.y]);
+                  if (Node_info[from][2] != Node_info[to][2]){
+                    polylines[Node_info[to][2]].push([From_utmkXY.x, From_utmkXY.y]);
+                    polylines[Node_info[to][2]].push([To_utmkXY.x, To_utmkXY.y]);
+                  }
+               }
+            })
+         };
+         reader.readAsBinaryString(input.files[0]);
+         
+      }
+      
+
+   </script>
+</body>
+</html>
